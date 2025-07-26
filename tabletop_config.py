@@ -1,7 +1,8 @@
 import numpy as np
 from lmp_prompts import prompt_tabletop_ui, prompt_parse_obj_name, prompt_parse_position, prompt_parse_question, prompt_transform_shape_pts, prompt_fgen
 
-model_name = "meta-llama/Llama-3.1-8B-Instruct"    # Imported in ./Interactive_Demo.py also.
+# model_name = "meta-llama/Llama-3.1-8B-Instruct"    # Imported in ./Interactive_Demo.py also.
+model_name = "meta-llama/CodeLlama-13b-hf"
 
 # Table Top Sim Env
 # Define PyBullet-based environment with a UR5e and 2-finger gripper
@@ -44,6 +45,8 @@ cfg_tabletop = {
       'engine': model_name,
       'max_tokens': 512,
       'temperature': 0,
+      'top_p': 1,
+      'do_sample': False,
       'query_prefix': '# ',
       'query_suffix': '.',
       'stop': ['#', 'objects = ['],
@@ -58,6 +61,8 @@ cfg_tabletop = {
       'engine': model_name,
       'max_tokens': 512,
       'temperature': 0,
+      'top_p': 1,
+      'do_sample': False,
       'query_prefix': '# ',
       'query_suffix': '.',
       'stop': ['#', 'objects = ['],
@@ -72,6 +77,8 @@ cfg_tabletop = {
       'engine': model_name,
       'max_tokens': 512,
       'temperature': 0,
+      'top_p': 1,
+      'do_sample': False,
       'query_prefix': '# ',
       'query_suffix': '.',
       'stop': ['#'],
@@ -86,6 +93,8 @@ cfg_tabletop = {
       'engine': model_name,
       'max_tokens': 512,
       'temperature': 0,
+      'top_p': 1,
+      'do_sample': False,
       'query_prefix': '# ',
       'query_suffix': '.',
       'stop': ['#', 'objects = ['],
@@ -100,6 +109,8 @@ cfg_tabletop = {
       'engine': model_name,
       'max_tokens': 512,
       'temperature': 0,
+      'top_p': 1,
+      'do_sample': False,
       'query_prefix': '# ',
       'query_suffix': '.',
       'stop': ['#'],
@@ -114,6 +125,8 @@ cfg_tabletop = {
       'engine': model_name,
       'max_tokens': 512,
       'temperature': 0,
+      'top_p': 1,
+      'do_sample': False,
       'query_prefix': '# define function: ',
       'query_suffix': '.',
       'stop': ['# define', '# example'],

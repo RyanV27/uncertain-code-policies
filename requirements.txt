@@ -1,0 +1,12 @@
+numpy
+scipy
+shapely
+astunparse
+pygments
+openai
+imageio
+imageio-ffmpeg
+pybullet
+opencv-python
+moviepy
+transformers

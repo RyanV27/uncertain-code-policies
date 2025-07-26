@@ -1,3 +1,4 @@
+import re
 import shapely
 import ast
 import astunparse
@@ -10,13 +11,13 @@ from pygments.formatters import TerminalFormatter
 
 class LMP:
 
-    def __init__(self, name, cfg, lmp_fgen, fixed_vars, variable_vars, inference_client):
+    def __init__(self, name, cfg, lmp_fgen, fixed_vars, variable_vars, tokenizer, model):
         self._name = name
         self._cfg = cfg
 
         self._base_prompt = self._cfg['prompt_text']
-
-        self._stop_tokens = list(self._cfg['stop'])
+        
+        self._stop_tokens = '|'.join(r'\n?' + re.escape(tok) for tok in list(self._cfg['stop']))
 
         self._lmp_fgen = lmp_fgen
 
@@ -24,7 +25,8 @@ class LMP:
         self._variable_vars = variable_vars
         self.exec_hist = ''
 
-        self.inference_client = inference_client
+        self.tokenizer = tokenizer
+        self.model = model
 
     def clear_exec_hist(self):
         self.exec_hist = ''
@@ -51,40 +53,28 @@ class LMP:
         prompt, use_query = self.build_prompt(query, context=context)
         print(f"\nCalling the LMP for prompt: {query}")
         while True:
-            # try:
-            #     code_str = openai.Completion.create(
-            #         prompt=prompt,
-            #         stop=self._stop_tokens,
-            #         temperature=self._cfg['temperature'],
-            #         engine=self._cfg['engine'],
-            #         max_tokens=self._cfg['max_tokens']
-            #     )['choices'][0]['text'].strip()
-            #     break
-            # except (RateLimitError, APIConnectionError) as e:
-            #     print(f'OpenAI API got err {e}')
-            #     print('Retrying after 10s.')
-            #     sleep(10)
             try:
-                code_str = self.inference_client.chat.completions.create(
-                    model=self._cfg['engine'],
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
-                    stop=self._stop_tokens,
+                input_ids = self.tokenizer(prompt, return_tensors="pt").to("cuda")
+                input_size = input_ids["input_ids"].shape[1]
+                
+                output = self.model.generate(
+                    **input_ids, 
+                    cache_implementation="static", 
                     temperature=self._cfg['temperature'],
-                    max_tokens=self._cfg['max_tokens']
-                )["choices"][0]["message"]["content"].strip()
+                    max_new_tokens=self._cfg['max_tokens'],
+                    top_p=self._cfg['top_p'],
+                    do_sample=self._cfg['do_sample'],
+                    pad_token_id=self.tokenizer.eos_token_id
+                )
+                
+                code_str = self.tokenizer.decode(output[0][input_size:], skip_special_tokens=True).strip()
+                code_str = re.split(self._stop_tokens, code_str)[0]        # Removing the extra tokens as model.generate doesn't have a parameter for stop tokens
                 break
             except Exception as e:
-                print(f'Hugging Face API got err {e}')
+                print(f'Error running {self._cfg["engine"]} through Hugging Face:\n{e}')
                 print('Retrying after 10s.')
                 sleep(10)
-
-        print("After calling Llama.")
-
+                
         if self._cfg['include_context'] and context != '':
             to_exec = f'{context}\n{code_str}'
             to_log = f'{context}\n{use_query}\n{code_str}'
@@ -115,16 +105,17 @@ class LMP:
 
 class LMPFGen:
 
-    def __init__(self, cfg, fixed_vars, variable_vars, model_name, inference_client):
+    def __init__(self, cfg, fixed_vars, variable_vars, model_name, tokenizer, model):
         self._cfg = cfg
 
-        self._stop_tokens = list(self._cfg['stop'])
+        self._stop_tokens = '|'.join(r'\n?' + re.escape(tok) for tok in list(self._cfg['stop']))
         self._fixed_vars = fixed_vars
         self._variable_vars = variable_vars
 
         self._base_prompt = self._cfg['prompt_text']
-        self.inference_client = inference_client
-
+        self.tokenizer = tokenizer
+        self.model = model
+        
     def create_f_from_sig(self, f_name, f_sig, other_vars=None, fix_bugs=False, return_src=False):
         print(f'Creating function: {f_sig}')
 
@@ -132,58 +123,48 @@ class LMPFGen:
         prompt = f'{self._base_prompt}\n{use_query}'
 
         while True:
-            # try:
-            #     f_src = openai.Completion.create(
-            #         prompt=prompt,
-            #         stop=self._stop_tokens,
-            #         temperature=self._cfg['temperature'],
-            #         engine=self._cfg['engine'],
-            #         max_tokens=self._cfg['max_tokens']
-            #     )['choices'][0]['text'].strip()
-            #     break
-            # except (RateLimitError, APIConnectionError) as e:
-            #     print(f'OpenAI API got err {e}')
-            #     print('Retrying after 10s.')
-            #     sleep(10)
             try:
-                f_src = self.inference_client.chat.completions.create(
-                    model=self._cfg['engine'],
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
-                    stop=self._stop_tokens,
+                input_ids = self.tokenizer(prompt, return_tensors="pt").to("cuda")
+                input_size = input_ids["input_ids"].shape[1]
+                
+                output = self.model.generate(
+                    **input_ids, 
+                    cache_implementation="static", 
                     temperature=self._cfg['temperature'],
-                    max_tokens=self._cfg['max_tokens']
-                )["choices"][0]["message"]["content"].strip()
+                    max_new_tokens=self._cfg['max_tokens'],
+                    top_p=self._cfg['top_p'],
+                    do_sample=self._cfg['do_sample'],
+                    pad_token_id=self.tokenizer.eos_token_id
+                )
+                
+                f_src = self.tokenizer.decode(output[0][input_size:], skip_special_tokens=True).strip()
+                f_src = re.split(self._stop_tokens, f_src)[0]        # Removing the extra tokens as model.generate doesn't have a parameter for stop tokens
+                # print(f"f_src: {f_src}\n")
+                # print(f"f_src removing extra tokens: {re.split(self._stop_tokens, f_src)[0]}")
                 break
             except Exception as e:
-                print(f'Hugging Face API got err {e}')
+                print(f'Error running {self._cfg["engine"]} through Hugging Face:\n{e}')
                 print('Retrying after 10s.')
                 sleep(10)
 
         if fix_bugs:
-            # f_src = openai.Edit.create(
-            #     model='code-davinci-edit-001',
-            #     input='# ' + f_src,
-            #     temperature=0,
-            #     instruction='Fix the bug if there is one. Improve readability. Keep same inputs and outputs. Only small changes. No comments.',
-            # )['choices'][0]['text'].strip()
             fix_bugs_prompt = f"""### Instruction: Fix the bug if there is one. Improve readability. Keep same inputs and outputs. Only small changes. No comments.
 ### Input:
 {f_src}"""
-            f_src = self.inference_client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": fix_bugs_prompt
-                    }
-                ],
+            
+            input_ids = self.tokenizer(fix_bugs_prompt, return_tensors="pt").to("cuda")
+            input_size = input_ids["input_ids"].shape[1]
+            
+            output = self.model.generate(
+                **input_ids, 
+                cache_implementation="static", 
                 temperature=0,
-            )["choices"][0]["message"]["content"].strip()
+                top_p=1,
+                do_sample=False,
+                pad_token_id=self.tokenizer.eos_token_id
+            )
+            
+            f_src = self.tokenizer.decode(output[0][input_size:], skip_special_tokens=True).strip()
 
         if other_vars is None:
             other_vars = {}

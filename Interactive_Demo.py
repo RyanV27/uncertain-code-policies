@@ -13,20 +13,24 @@ import numpy as np
 import threading
 import copy
 import cv2
-from moviepy.editor import ImageSequenceClip
-from huggingface_hub import InferenceClient
+# from moviepy.editor import ImageSequenceClip
 import subprocess
+import pickle
+from pathlib import Path
+from datetime import datetime
 
 # imports for LMPs
 import shapely
 import ast
 import astunparse
+import torch
 from time import sleep
 from shapely.geometry import *
 from shapely.affinity import *
 from pygments import highlight
 from pygments.lexers import PythonLexer
 from pygments.formatters import TerminalFormatter
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 # Importing user-defined fucntions and classes
 from lmp import FunctionParser, var_exists, merge_dicts, exec_safe 
@@ -35,20 +39,13 @@ from lmp_utils import setup_LMP
 
 from tabletop_config import ALL_BLOCKS, ALL_BOWLS, cfg_tabletop, model_name
 
-
-# Hugging face model and access token
-HG_TOKEN = "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"
-
-# Defining an InferenceClient from Hugging Face
-client = InferenceClient(
-    provider="auto",
-    api_key=HG_TOKEN,
-)
-
+# Name of the Hugging Face model repository
+# model_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+model_id = "meta-llama/CodeLlama-13b-hf"
 
 def main():
     print("Running Interactive_Demo.py!\n")
-
+    
     # Download PyBullet assets.
     if not os.path.exists('ur5e/ur5e.urdf'):
         print('ur5e/ur5e.urdf doesn\'t exist')
@@ -65,11 +62,20 @@ def main():
         subprocess.run(['gdown', '--id', '1GsqNLhEl9dd4Mc3BM0dX3MibOI1FVWNM'], check=True)
         subprocess.run(['unzip', 'bowl.zip'], check=True)
 
-
+    # Initializing local Llama
+    # To store the downloaded tokenizer and model in a specific folder add param "cache_dir=/path/to/folder/"
+    tokenizer = AutoTokenizer.from_pretrained(model_id, cache_dir="/scratch/rsvargh2/huggingface_models/")   
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        device_map="auto",
+        torch_dtype=torch.float16,
+        cache_dir="/scratch/rsvargh2/huggingface_models/",    # To store the downloaded model in this folder
+    )
+    
     #  Initialize the Environment
     num_blocks = 3 #@param {type:"slider", min:0, max:4, step:1}
     num_bowls = 3 #@param {type:"slider", min:0, max:4, step:1}
-    high_resolution = False #@param {type:"boolean"}
+    high_resolution = True #@param {type:"boolean"}
     high_frame_rate = False #@param {type:"boolean"}
 
     # setup env and LMP
@@ -78,28 +84,54 @@ def main():
     bowl_list = np.random.choice(ALL_BOWLS, size=num_bowls, replace=False).tolist()
     obj_list = block_list + bowl_list
     _ = env.reset(obj_list)
-    lmp_tabletop_ui = setup_LMP(env, cfg_tabletop, model_name=model_name, inference_client=client)
+    lmp_tabletop_ui = setup_LMP(env, cfg_tabletop, model_name=model_name, tokenizer=tokenizer, model=model)
+
+    print("\nAvailable objects:")
+    print(obj_list)
+
+    # Creating the folder for storing the visualizations of the current run
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  
+    save_dir = Path(f"./runs/run_{timestamp}")
+    save_dir.mkdir(parents=True, exist_ok=True)
 
     # display env
     # cv2.imshow('env', cv2.cvtColor(env.get_camera_image(env), cv2.COLOR_BGR2RGB))
-
-    print('\nAvailable objects:')
-    print(obj_list)
+    cv2.imwrite(save_dir / "env_img.jpg", cv2.cvtColor(env.get_camera_image(env), cv2.COLOR_RGB2BGR)) 
 
     # Interactive Demo
     while True:
         user_input = input("User input: ") #@param {allow-input: true, type:"string"}
+        if user_input == '':
+            break
 
         env.cache_video = []
 
-        print('Running policy and recording video...')
-        lmp_tabletop_ui(user_input, f'objects = {env.object_list}')
+        try:
+            print("Running policy and recording video...")
+            lmp_tabletop_ui(user_input, f'objects = {env.object_list}')
 
-    # render video
-    # if env.cache_video:
-    #     rendered_clip = ImageSequenceClip(env.cache_video, fps=35 if high_frame_rate else 25)
-    #     # display(rendered_clip.ipython_display(autoplay=1, loop=1))
-    #     rendered_clip.write_videofile("output_video.mp4", codec="libx264")
+            # render video
+            if env.cache_video:
+                print(f"No. of frames: {len(env.cache_video)}")
+        
+                # Get frame properties
+                height, width = env.cache_video[0].shape[:2]
+                fps = 35 if high_frame_rate else 25
+                
+                # Define codec and output file
+                fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # or 'XVID' or 'avc1'
+                out = cv2.VideoWriter(save_dir / f"{user_input}.mp4", fourcc, fps, (width, height))
+                
+                for frame in env.cache_video:
+                    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                    out.write(frame_bgr)
+            
+                out.release()
+                print(f"Video saved as {save_dir}/{user_input}.mp4")
+        except Exception as e:
+            print(f"\nError:\n{e}\n")
+            print("Exiting the simulation.")
+            break
 
 if __name__ == "__main__":
     main()

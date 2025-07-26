@@ -8,7 +8,7 @@ from tabletop_config import lmp_tabletop_coords
 from lmp_wrapper import LMP_wrapper
 from lmp import LMP, LMPFGen
 
-def setup_LMP(env, cfg_tabletop, model_name, inference_client = None):
+def setup_LMP(env, cfg_tabletop, model_name, tokenizer = None, model = None):
   # LMP env wrapper
   cfg_tabletop = copy.deepcopy(cfg_tabletop)
   cfg_tabletop['env'] = dict()
@@ -36,18 +36,18 @@ def setup_LMP(env, cfg_tabletop, model_name, inference_client = None):
 
   # creating the function-generating LMP
   lmp_fgen = LMPFGen(cfg_tabletop['lmps']['fgen'], fixed_vars, variable_vars, 
-                        model_name=model_name, inference_client=inference_client)
+                        model_name=model_name, tokenizer=tokenizer, model=model)
 
   # creating other low-level LMPs
   variable_vars.update({
-      k: LMP(k, cfg_tabletop['lmps'][k], lmp_fgen, fixed_vars, variable_vars, inference_client)
+      k: LMP(k, cfg_tabletop['lmps'][k], lmp_fgen, fixed_vars, variable_vars, tokenizer=tokenizer, model=model)
       for k in ['parse_obj_name', 'parse_position', 'parse_question', 'transform_shape_pts']
   })
 
   # creating the LMP that deals w/ high-level language commands
   lmp_tabletop_ui = LMP(
       'tabletop_ui', cfg_tabletop['lmps']['tabletop_ui'], lmp_fgen, fixed_vars, variable_vars, 
-        inference_client
+        tokenizer=tokenizer, model=model
    )
 
   return lmp_tabletop_ui

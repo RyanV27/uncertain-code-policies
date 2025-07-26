@@ -1,7 +1,4 @@
 prompt_tabletop_ui = '''
-<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-You are a Python code completion engine. Output only valid Python code. Do not include explanations, markdown formatting, or repeat any part of the input. Only output the part of the code that is incomplete.<|eot_id|>
-
 # Python 2D robot control script
 import numpy as np
 from env_utils import put_first_on_second, get_obj_pos, get_obj_names, say, get_corner_name, get_side_name, is_obj_visible, stack_objects_in_order
@@ -204,9 +201,6 @@ put_first_on_second('red block', farthest_bowl_name)
 
 
 prompt_parse_obj_name = '''
-<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-You are a Python code completion engine. Output only valid Python code. Do not include explanations, markdown formatting, or repeat any part of the input. Only output the part of the code that is incomplete.<|eot_id|>
-
 import numpy as np
 from env_utils import get_obj_pos, parse_position
 from utils import get_obj_positions_np
@@ -275,23 +269,20 @@ ret_val = bowl_name
 
 
 prompt_parse_position = '''
-<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-You are a Python code completion engine. Output only valid Python code. Do not include explanations, markdown formatting, or repeat any part of the input. Only output the part of the code that is incomplete.<|eot_id|>
-
 import numpy as np
 from shapely.geometry import *
 from shapely.affinity import *
 from env_utils import denormalize_xy, parse_obj_name, get_obj_names, get_obj_pos
 
 # a 30cm horizontal line in the middle with 3 points.
-middle_pos = denormalize_xy([0.5, 0.5])
+middle_pos = denormalize_xy([0.5, 0.5]) 
 start_pos = middle_pos + [-0.3/2, 0]
 end_pos = middle_pos + [0.3/2, 0]
 line = make_line(start=start_pos, end=end_pos)
 points = interpolate_pts_on_line(line=line, n=3)
 ret_val = points
 # a 20cm vertical line near the right with 4 points.
-middle_pos = denormalize_xy([1, 0.5])
+middle_pos = denormalize_xy([1, 0.5]) 
 start_pos = middle_pos + [0, -0.2/2]
 end_pos = middle_pos + [0, 0.2/2]
 line = make_line(start=start_pos, end=end_pos)
@@ -336,9 +327,6 @@ ret_val = [top_left_pos, top_right_pos]
 
 
 prompt_parse_question = '''
-<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-You are a Python code completion engine. Output only valid Python code. Do not include explanations, markdown formatting, or repeat any part of the input. Only output the part of the code that is incomplete.<|eot_id|>
-
 from utils import get_obj_pos, get_obj_names, parse_obj_name, bbox_contains_pt, is_obj_visible
 
 objects = ['yellow bowl', 'blue block', 'yellow block', 'blue bowl', 'fruit', 'green block', 'black bowl']
@@ -373,9 +361,6 @@ ret_val = get_obj_pos('green block')[1] < get_obj_pos('blue bowl')[1]
 
 
 prompt_transform_shape_pts = '''
-<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-You are a Python code completion engine. Output only valid Python code. Do not include explanations, markdown formatting, or repeat any part of the input. Only output the part of the code that is incomplete.<|eot_id|>
-
 import numpy as np
 from utils import get_obj_pos, get_obj_names, parse_position, parse_obj_name
 
@@ -399,9 +384,6 @@ new_shape_pts = translate_pts_np(shape_pts, mean_delta)
 
 
 prompt_fgen = '''
-<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-You are a Python code completion engine. Output only valid Python code. Do not include explanations, markdown formatting, or repeat any part of the input. Only output the part of the code that is incomplete.<|eot_id|>
-
 import numpy as np
 from shapely.geometry import *
 from shapely.affinity import *
