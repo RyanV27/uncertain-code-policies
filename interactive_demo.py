@@ -1,11 +1,3 @@
-# !pip install numpy scipy shapely astunparse pygments > /dev/null 2>&1
-# !pip install imageio==2.4.1 imageio-ffmpeg pybullet moviepy
-
-# To ensure that moviepy package does not try to reinstall ffmpeg 
-# when you import moviepy, in /miniconda3/envs/{YOUR_ENV_NAME}/lib/
-# python3.8/site-packages/moviepy/editor.py file, comment out 
-# line 26; imageio.plugins.ffmpeg.download() and add a "pass" under it.
-
 import os
 import pybullet
 import pybullet_data
@@ -13,7 +5,6 @@ import numpy as np
 import threading
 import copy
 import cv2
-# from moviepy.editor import ImageSequenceClip
 import subprocess
 import pickle
 from pathlib import Path
@@ -73,8 +64,8 @@ def main():
     )
     
     #  Initialize the Environment
-    num_blocks = 3 #@param {type:"slider", min:0, max:4, step:1}
-    num_bowls = 3 #@param {type:"slider", min:0, max:4, step:1}
+    num_blocks = np.random.randint(0, 4) #@param {type:"slider", min:0, max:4, step:1}
+    num_bowls = np.random.randint(0, 4) #@param {type:"slider", min:0, max:4, step:1}
     high_resolution = True #@param {type:"boolean"}
     high_frame_rate = False #@param {type:"boolean"}
 

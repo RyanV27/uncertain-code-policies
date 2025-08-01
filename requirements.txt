@@ -8,5 +8,4 @@ imageio
 imageio-ffmpeg
 pybullet
 opencv-python
-moviepy
 transformers

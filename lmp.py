@@ -139,8 +139,6 @@ class LMPFGen:
                 
                 f_src = self.tokenizer.decode(output[0][input_size:], skip_special_tokens=True).strip()
                 f_src = re.split(self._stop_tokens, f_src)[0]        # Removing the extra tokens as model.generate doesn't have a parameter for stop tokens
-                # print(f"f_src: {f_src}\n")
-                # print(f"f_src removing extra tokens: {re.split(self._stop_tokens, f_src)[0]}")
                 break
             except Exception as e:
                 print(f'Error running {self._cfg["engine"]} through Hugging Face:\n{e}')
