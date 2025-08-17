@@ -64,21 +64,25 @@ def main():
     )
     
     #  Initialize the Environment
-    num_blocks = np.random.randint(0, 4) #@param {type:"slider", min:0, max:4, step:1}
-    num_bowls = np.random.randint(0, 4) #@param {type:"slider", min:0, max:4, step:1}
-    high_resolution = True #@param {type:"boolean"}
-    high_frame_rate = False #@param {type:"boolean"}
+    num_blocks = np.random.randint(0, 4) # min:0, max:4, step:1
+    num_bowls = np.random.randint(0, 4) # min:0, max:4, step:1
+    
+    high_resolution = True 
+    high_frame_rate = False
 
     # setup env and LMP
     env = PickPlaceEnv(render=True, high_res=high_resolution, high_frame_rate=high_frame_rate)
     block_list = np.random.choice(ALL_BLOCKS, size=num_blocks, replace=False).tolist()
     bowl_list = np.random.choice(ALL_BOWLS, size=num_bowls, replace=False).tolist()
+        
     obj_list = block_list + bowl_list
-    _ = env.reset(obj_list)
-    lmp_tabletop_ui = setup_LMP(env, cfg_tabletop, model_name=model_name, tokenizer=tokenizer, model=model)
 
     print("\nAvailable objects:")
     print(obj_list)
+    
+    # Setting objects in the environment
+    _ = env.reset(obj_list)
+    lmp_tabletop_ui = setup_LMP(env, cfg_tabletop, model_name=model_name, tokenizer=tokenizer, model=model)
 
     # Creating the folder for storing the visualizations of the current run
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  

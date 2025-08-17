@@ -168,35 +168,33 @@ class PickPlaceEnv():
     self.obj_name_to_id = {}
     obj_xyz = np.zeros((0, 3))
     for obj_name in object_list:
-      if ('block' in obj_name) or ('bowl' in obj_name):
-
+        if ('block' in obj_name) or ('bowl' in obj_name):
         # Get random position 15cm+ from other objects.
-        while True:
-          rand_x = np.random.uniform(BOUNDS[0, 0] + 0.1, BOUNDS[0, 1] - 0.1)
-          rand_y = np.random.uniform(BOUNDS[1, 0] + 0.1, BOUNDS[1, 1] - 0.1)
-          rand_xyz = np.float32([rand_x, rand_y, 0.03]).reshape(1, 3)
-          if len(obj_xyz) == 0:
-            obj_xyz = np.concatenate((obj_xyz, rand_xyz), axis=0)
-            break
-          else:
-            nn_dist = np.min(np.linalg.norm(obj_xyz - rand_xyz, axis=1)).squeeze()
-            if nn_dist > 0.15:
-              obj_xyz = np.concatenate((obj_xyz, rand_xyz), axis=0)
-              break
-
-        object_color = COLORS[obj_name.split(' ')[0]]
-        object_type = obj_name.split(' ')[1]
-        object_position = rand_xyz.squeeze()
-        if object_type == 'block':
-          object_shape = pybullet.createCollisionShape(pybullet.GEOM_BOX, halfExtents=[0.02, 0.02, 0.02])
-          object_visual = pybullet.createVisualShape(pybullet.GEOM_BOX, halfExtents=[0.02, 0.02, 0.02])
-          object_id = pybullet.createMultiBody(0.01, object_shape, object_visual, basePosition=object_position)
-        elif object_type == 'bowl':
-          object_position[2] = 0
-          object_id = pybullet.loadURDF("bowl/bowl.urdf", object_position, useFixedBase=1)
-        pybullet.changeVisualShape(object_id, -1, rgbaColor=object_color)
-        self.obj_name_to_id[obj_name] = object_id
-
+            while True:
+              rand_x = np.random.uniform(BOUNDS[0, 0] + 0.1, BOUNDS[0, 1] - 0.1)
+              rand_y = np.random.uniform(BOUNDS[1, 0] + 0.1, BOUNDS[1, 1] - 0.1)
+              rand_xyz = np.float32([rand_x, rand_y, 0.03]).reshape(1, 3)
+              if len(obj_xyz) == 0:
+                obj_xyz = np.concatenate((obj_xyz, rand_xyz), axis=0)
+                break
+              else:
+                nn_dist = np.min(np.linalg.norm(obj_xyz - rand_xyz, axis=1)).squeeze()
+                if nn_dist > 0.15:
+                  obj_xyz = np.concatenate((obj_xyz, rand_xyz), axis=0)
+                  break
+            
+            object_color = COLORS[obj_name.split(' ')[0]]
+            object_type = obj_name.split(' ')[1]
+            object_position = rand_xyz.squeeze()
+            if object_type == 'block':
+              object_shape = pybullet.createCollisionShape(pybullet.GEOM_BOX, halfExtents=[0.02, 0.02, 0.02])
+              object_visual = pybullet.createVisualShape(pybullet.GEOM_BOX, halfExtents=[0.02, 0.02, 0.02])
+              object_id = pybullet.createMultiBody(0.01, object_shape, object_visual, basePosition=object_position)
+            elif object_type == 'bowl':
+              object_position[2] = 0
+              object_id = pybullet.loadURDF("bowl/bowl.urdf", object_position, useFixedBase=1)
+            pybullet.changeVisualShape(object_id, -1, rgbaColor=object_color)
+            self.obj_name_to_id[obj_name] = object_id
 
     # Re-enable rendering.
     pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_RENDERING, 1)

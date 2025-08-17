@@ -1,0 +1,9 @@
+Commands for testing VLMs
+
+python test_code/generate_test_envs.py -n 20 --path "./runs/test_env" --mode 'w'
+
+python test_code/call_vlm.py --provider "huggingface" --model "microsoft/Phi-4-multimodal-instruct" --path "./runs/test_env"
+python test_code/call_vlm.py --provider "openai" --model "gpt-5-mini" --path "./runs/test_env"
+
+python test_code/object_identification_metrics.py --provider "huggingface" --model "microsoft/Phi-4-multimodal-instruct" --path "./runs/test_env"
+python test_code/object_identification_metrics.py --provider "openai" --model "o4-mini" --path "./runs/test_env"
