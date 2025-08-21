@@ -1,9 +1,14 @@
 Commands for testing VLMs
 
-python test_code/generate_test_envs.py -n 20 --path "./runs/test_env" --mode 'w'
+python vlm_grounding/generate_test_envs.py -n 20 --path "./runs/vlm_clutter_test_envs" --mode 'w' --clutter
+python vlm_grounding/generate_test_envs.py -n 20 --path "./runs/vlm_test_envs" --mode 'w'S
 
-python test_code/call_vlm.py --provider "huggingface" --model "microsoft/Phi-4-multimodal-instruct" --path "./runs/test_env"
-python test_code/call_vlm.py --provider "openai" --model "gpt-5-mini" --path "./runs/test_env"
+python vlm_grounding/call_vlm.py --provider "huggingface" --model "microsoft/Phi-4-multimodal-instruct" --path "./runs/vlm_test_envs"
+python vlm_grounding/call_vlm.py --provider "openai" --model "gpt-5-mini" --path "./runs/vlm_test_envs"
+python vlm_grounding/call_vlm.py --provider "huggingface" --model "microsoft/Phi-4-multimodal-instruct" --path "./runs/vlm_clutter_test_envs"
+python vlm_grounding/call_vlm.py --provider "openai" --model "gpt-5-mini" --path "./runs/vlm_clutter_test_envs"
 
-python test_code/object_identification_metrics.py --provider "huggingface" --model "microsoft/Phi-4-multimodal-instruct" --path "./runs/test_env"
-python test_code/object_identification_metrics.py --provider "openai" --model "o4-mini" --path "./runs/test_env"
+python vlm_grounding/object_identification_metrics.py --provider "huggingface" --model "microsoft/Phi-4-multimodal-instruct" --path "./runs/vlm_test_envs"
+python vlm_grounding/object_identification_metrics.py --provider "openai" --model "o4-mini" --path "./runs/vlm_test_envs"
+python vlm_grounding/object_identification_metrics.py --provider "huggingface" --model "microsoft/Phi-4-multimodal-instruct" --path "./runs/vlm_clutter_test_envs"
+python vlm_grounding/object_identification_metrics.py --provider "openai" --model "o4-mini" --path "./runs/vlm_clutter_test_envs"

@@ -1,4 +1,5 @@
 import os
+import random
 import pybullet
 import pybullet_data
 import threading
@@ -164,28 +165,40 @@ class PickPlaceEnv():
     pybullet.changeVisualShape(plane_id, -1, rgbaColor=[0.2, 0.2, 0.2, 1.0])
 
     # Load objects according to config.
-    self.object_list = object_list
+    self.object_list = []
     self.obj_name_to_id = {}
     obj_xyz = np.zeros((0, 3))
-    for obj_name in object_list:
+    identify_objs_list = []
+    all_objs_list = []
+      
+    for obj_name in random.sample(object_list, len(object_list)):
         if ('block' in obj_name) or ('bowl' in obj_name):
         # Get random position 15cm+ from other objects.
-            while True:
+            pos_found = False
+            
+            for _ in range(100):
               rand_x = np.random.uniform(BOUNDS[0, 0] + 0.1, BOUNDS[0, 1] - 0.1)
               rand_y = np.random.uniform(BOUNDS[1, 0] + 0.1, BOUNDS[1, 1] - 0.1)
               rand_xyz = np.float32([rand_x, rand_y, 0.03]).reshape(1, 3)
               if len(obj_xyz) == 0:
                 obj_xyz = np.concatenate((obj_xyz, rand_xyz), axis=0)
+                pos_found = True
                 break
               else:
                 nn_dist = np.min(np.linalg.norm(obj_xyz - rand_xyz, axis=1)).squeeze()
                 if nn_dist > 0.15:
                   obj_xyz = np.concatenate((obj_xyz, rand_xyz), axis=0)
+                  pos_found = True
                   break
+
+            if pos_found == False:
+                self.skip_obj_in_list(obj_name, reason=f"Could not find a random position to place {obj_name}.")
+                continue
             
             object_color = COLORS[obj_name.split(' ')[0]]
             object_type = obj_name.split(' ')[1]
             object_position = rand_xyz.squeeze()
+            
             if object_type == 'block':
               object_shape = pybullet.createCollisionShape(pybullet.GEOM_BOX, halfExtents=[0.02, 0.02, 0.02])
               object_visual = pybullet.createVisualShape(pybullet.GEOM_BOX, halfExtents=[0.02, 0.02, 0.02])
@@ -193,19 +206,55 @@ class PickPlaceEnv():
             elif object_type == 'bowl':
               object_position[2] = 0
               object_id = pybullet.loadURDF("bowl/bowl.urdf", object_position, useFixedBase=1)
+                
             pybullet.changeVisualShape(object_id, -1, rgbaColor=object_color)
             self.obj_name_to_id[obj_name] = object_id
 
+            identify_objs_list.append(obj_name)
+            self.object_list.append(obj_name)
+        else:                                                                     # Change to test out cluttering
+            pos_found = False
+            
+            for _ in range(100):
+                rand_x = np.random.uniform(BOUNDS[0, 0] + 0.1, BOUNDS[0, 1] - 0.1)
+                rand_y = np.random.uniform(BOUNDS[1, 0] + 0.1, BOUNDS[1, 1] - 0.1)
+                rand_xyz = np.float32([rand_x, rand_y, 0.03]).reshape(1, 3)
+                if len(obj_xyz) == 0:
+                    obj_xyz = np.concatenate((obj_xyz, rand_xyz), axis=0)
+                    pos_found = True
+                    break
+                else:
+                    nn_dist = np.min(np.linalg.norm(obj_xyz - rand_xyz, axis=1)).squeeze()
+                    if nn_dist > 0.15 and nn_dist < 0.25:
+                        obj_xyz = np.concatenate((obj_xyz, rand_xyz), axis=0)
+                        # print(f"Found a random position to place {obj_name}")
+                        pos_found = True
+                        break
+            object_position = rand_xyz.squeeze()
+
+            # Removing object from the list if urdf file does not exist or position not found
+            if not os.path.exists("./models/" + obj_name + "/model.urdf"):
+                print(f"./models/{obj_name}/model.urdf does not exist.")
+                continue
+            elif pos_found == False:
+                print(f"Could not find a random position to place {obj_name}.")
+                continue
+            
+            object_id = pybullet.loadURDF("./models/" + obj_name + "/model.urdf", object_position, useFixedBase=1, flags=pybullet.URDF_USE_INERTIA_FROM_FILE)
+            obj_name = obj_name.replace('_', ' ')
+            self.obj_name_to_id[obj_name] = object_id
+            self.object_list.append(obj_name)
+            
     # Re-enable rendering.
     pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_RENDERING, 1)
 
-    for _ in range(200):
+    for _ in range(400):
       pybullet.stepSimulation()
 
     # record object positions at reset
-    self.init_pos = {name: self.get_obj_pos(name) for name in object_list}
+    self.init_pos = {name: self.get_obj_pos(name) for name in self.object_list}
 
-    return self.get_observation()
+    return self.get_observation(), identify_objs_list.copy(), self.object_list.copy()
 
   def servoj(self, joints):
     """Move to target joint positions with position control."""

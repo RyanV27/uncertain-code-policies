@@ -49,13 +49,14 @@ def main():
     parser.add_argument(
         "--path",
         type=str,
-        default="./runs/test_env",
+        default="./runs/test_envs",
         help=(
             "Path to output directory where environment images and a JSON",
             "file where an object list for each environment is stored."
         )
     )
     parser.add_argument("--mode", choices=["w", "a"], default="w", help="Write mode to JSON file: 'w' = write (overwrite), 'a' = append")
+    parser.add_argument("--clutter", action="store_true", help="Generate environment with clutter.")
 
     args = parser.parse_args()
                         
@@ -84,6 +85,7 @@ def main():
     save_dir = Path(args.path)
     save_dir.mkdir(parents=True, exist_ok=True)
 
+    clutter_models_dir_path = "./clutter_models/"      # Path to clutter object models
     num_envs = args.n
     file_mode = args.mode
 
@@ -111,18 +113,30 @@ def main():
         
         num_blocks = np.random.randint(0, 5)   # originally min:0, max:4, step:1 
         num_bowls = np.random.randint(0, 5)    # originally min:0, max:4, step:1
+        num_clutter_objs = 5 if args.clutter else 0    # np.random.randint(4, 6)
         
         block_list = np.random.choice(ALL_BLOCKS, size=num_blocks, replace=False).tolist()
         bowl_list = np.random.choice(ALL_BOWLS, size=num_bowls, replace=False).tolist()
-        obj_list = block_list + bowl_list
+
+        # Adding random objects as clutter
+        clutter_list = []
+        if args.clutter is True:
+            clutter_models_dirs = [
+                d.name for d in Path(clutter_models_dir_path).iterdir()
+                if d.is_dir() and d.name not in {".ipynb_checkpoints", "__pycache__"}
+            ]
+            clutter_list = np.random.choice(clutter_models_dirs, size=num_clutter_objs, replace=False).tolist()
+
+        all_obj_list = block_list + bowl_list + clutter_list
         
-        _ = env.reset(obj_list)
+        _, identify_env_obj_list, all_env_objs_list = env.reset(all_obj_list)
         # lmp_tabletop_ui = setup_LMP(env, cfg_tabletop, model_name=model_name, tokenizer=tokenizer, model=model)
 
-        print(f"Available objects: {obj_list}")
+        print(f"Available objects: {all_env_objs_list}")
+        print(f"Objects to identify: {identify_env_obj_list}")
     
         cur_env_data['id'] = start_id + i
-        cur_env_data['actual'] = obj_list
+        cur_env_data['actual'] = identify_env_obj_list
         
         # Saving env image with Pillow Image
         env_img = Image.fromarray(env.get_camera_image(env))

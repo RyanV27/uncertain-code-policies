@@ -28,7 +28,7 @@ def main():
     parser.add_argument(
         "--path",
         type=str,
-        default="./runs/test_env",
+        default="./runs/vlm_test_envs",
         help=(
             "Path to output directory where environment images and a JSON",
             "file where an object list for each environment is stored."
@@ -41,27 +41,11 @@ def main():
     save_dir = Path(args.path)
     vlm_id = args.model
     model_save_dir = save_dir / vlm_id if provider == "huggingface" else save_dir / provider / vlm_id
-    # object_lists_file_name = "env_obj_lists.json"
-    # object_lists_file_path = save_dir / object_lists_file_name
-
-    #  # Getting data from existing JSON file
-    # if os.path.exists(object_lists_file_path):
-    #     with open(object_lists_file_path, 'r') as f_in:
-    #         try:
-    #             data = json.load(f_in)
-    #         except json.JSONDecodeError as e:
-    #             print("JSON file with object lists exists but cannot be opened.")
-    #             print(f"Error: {e}")
-    # else:
-    #     print(f"{object_lists_file_path} does not exist.")
-    #     print(f"Exiting!")
-    #     return
 
     # Creating a folder to store the particular model's results
     model_save_dir.mkdir(parents=True, exist_ok=True)
     model_results_file_name = "vlm_env_obj_lists.json"
     model_results_file_path = model_save_dir / model_results_file_name
-
      
     if provider == "huggingface":
         # Loading the model, processor and generation config
@@ -129,7 +113,7 @@ def main():
             response = object_id_processor.batch_decode(
                 generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False
             )[0]
-            # print(f'>>> Response\n{response}')
+            print(f"Response: {response}")
         elif provider == "openai":
             # Due to a limit on the number of calls per minute, have to retry after a time interval.
             while True:
